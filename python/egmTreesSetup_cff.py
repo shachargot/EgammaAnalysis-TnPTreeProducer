@@ -28,10 +28,15 @@ def setTagsProbes(process, options):
         goodPartDef.setGoodParticlesMiniAOD( process, options )
 
 
+    process.tagEleOffline = cms.EDFilter("PATElectronRefSelector",
+        src = cms.InputTag(options['ELECTRON_COLL']),
+        cut = cms.string(options['ELECTRON_TAG_CUTS']),
+    )
+
     ####################### TAG ELECTRON ############################
     process.tagEle = cms.EDProducer(eleHLTProducer,
                                         filterNames = cms.vstring(options['TnPHLTTagFilters']),
-                                        inputs      = cms.InputTag("tagEleCutBasedTight"),
+                                        inputs      = cms.InputTag("tagEleOffline"),
                                         bits        = cms.InputTag('TriggerResults::' + options['HLTProcessName']),
                                         objects     = cms.InputTag(hltObjects),
                                         dR          = cms.double(0.3),
@@ -124,7 +129,7 @@ def setTagsProbes(process, options):
 
 
     ########################### TnP pairs ############################
-    masscut = cms.string("50<mass<130")
+    masscut = cms.string("1<mass<5")
     process.tnpPairingEleHLT   = cms.EDProducer("CandViewShallowCloneCombiner",
                                         decay = cms.string("tagEle@+ probeEle@-"),
                                         checkCharge = cms.bool(True),
@@ -178,6 +183,7 @@ def setSequences(process, options):
     process.tag_sequence = cms.Sequence(
         process.goodElectrons             +
         process.tagEleCutBasedTight       + # note: this one also gets introduced by the egmEleID.setIDs function
+        process.tagEleOffline             +
         process.tagEle
         )
 
@@ -212,6 +218,9 @@ def setupTreeMaker(process, options) :
     process.hltFilter.throw = cms.bool(True)
     process.hltFilter.HLTPaths = options['TnPPATHS']
     process.hltFilter.TriggerResultsTag = cms.InputTag("TriggerResults","",options['HLTProcessName'])
+
+    if options.get('noHLTReq', False):
+        process.hltFilter = cms.EDFilter("HLTBool", result = cms.bool(True))
 
     setTagsProbes( process, options )
     setSequences(  process, options )

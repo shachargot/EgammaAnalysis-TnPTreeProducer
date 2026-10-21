@@ -33,6 +33,7 @@ registerOption('era',         '2018',   'Data-taking era: 2016, 2017, 2018, 2022
 registerOption('logLevel',    'INFO',   'Loglevel: could be DEBUG, INFO, WARNING, ERROR', optionType=VarParsing.varType.string)
 
 registerOption('L1Threshold',  0,       'Threshold for L1 matched objects', optionType=VarParsing.varType.int)
+registerOption('noHLTReq', False, 'Do not require the HLT path or tag trigger matching (MC efficiency)')
 
 varOptions.parseArguments()
 
@@ -77,7 +78,7 @@ options['SUPERCLUSTER_COLL']    = "reducedEgamma:reducedSuperClusters" ### not u
 options['ELECTRON_CUTS']        = "ecalEnergy*sin(superClusterPosition.theta)>5.0 &&  (abs(-log(tan(superClusterPosition.theta/2)))<2.5)"
 options['SUPERCLUSTER_CUTS']    = "abs(eta)<2.5 &&  et>5.0"
 options['PHOTON_CUTS']          = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && pt> 10"
-options['ELECTRON_TAG_CUTS']    = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && !(1.4442<=abs(-log(tan(superClusterPosition.theta/2)))<=1.566) && pt >= 30.0"
+options['ELECTRON_TAG_CUTS']    = "(abs(-log(tan(superCluster.position.theta/2)))<=2.5) && !(1.4442<=abs(-log(tan(superClusterPosition.theta/2)))<=1.566) && pt >= 5.0"
 
 options['MAXEVENTS']            = cms.untracked.int32(varOptions.maxEvents)
 options['DoTrigger']            = varOptions.doTrigger
@@ -89,6 +90,7 @@ options['DEBUG']                = False
 options['isMC']                 = varOptions.isMC
 options['UseCalibEn']           = varOptions.calibEn
 options['addSUSY']              = varOptions.includeSUSY and not options['useAOD']
+options['noHLTReq']             = varOptions.noHLTReq
 
 options['OUTPUT_FILE_NAME']     = "TnPTree_%s.root" % ("mc" if options['isMC'] else "data")
 
@@ -129,6 +131,21 @@ log.info('Globaltag: %s' % options['GLOBALTAG'])
 #################################################
 
 #Filters used in different paths
+# HLT_DoubleEle6_eta1p22_mMax6
+doubleEle6_allFilters = {
+    'passHltL1DoubleEGXer1p2dRMaxYFilter': cms.vstring('hltL1DoubleEGXer1p2dRMaxYFilter'),
+    'passHltDoubleEle6eta1p22EtFilter': cms.vstring('hltDoubleEle6eta1p22EtFilter'),
+    'passHltDoubleEle6eta1p22PixelMatchFilter': cms.vstring('hltDoubleEle6eta1p22PixelMatchFilter'),
+    'passHltDoubleEle6eta1p22PMS2Filter': cms.vstring('hltDoubleEle6eta1p22PMS2Filter'),
+    'passHltDoubleEle6eta1p22OneOEMinusOneOPFilter': cms.vstring('hltDoubleEle6eta1p22OneOEMinusOneOPFilter'),
+    'passHltDoubleEle6eta1p22DetaFilter': cms.vstring('hltDoubleEle6eta1p22DetaFilter'),
+    'passHltDoubleEle6eta1p22DphiFilter': cms.vstring('hltDoubleEle6eta1p22DphiFilter'),
+    'passHltDoubleEle6eta1p22Chi2Filter': cms.vstring('hltDoubleEle6eta1p22Chi2Filter'),
+    'passHltDoubleEle6eta1p22ValidHitsFilter': cms.vstring('hltDoubleEle6eta1p22ValidHitsFilter'),
+    'passHltDoubleEle6eta1p22NLayerITFilter': cms.vstring('hltDoubleEle6eta1p22NLayerITFilter'),
+    'passHltDoubleEle6eta1p22PMmMax6MassFilter': cms.vstring('hltDoubleEle6eta1p22PMmMax6MassFilter')
+}
+
 #HLT_Ele30_WPTight_Gsf
 ele30_allFilters = {'passHLTEG30L1SingleEGOrEtFilter': cms.vstring('hltEG30L1SingleEGOrEtFilter'), 'passHLTEle30WPTightClusterShapeFilter': cms.vstring('hltEle30WPTightClusterShapeFilter'), 'passHLTEle30WPTightHEFilter': cms.vstring('hltEle30WPTightHEFilter'), 'passHLTEle30WPTightEcalIsoFilter': cms.vstring('hltEle30WPTightEcalIsoFilter'), 'passHLTEle30WPTightHcalIsoFilter': cms.vstring('hltEle30WPTightHcalIsoFilter'), 'passHLTEle30WPTightPixelMatchFilter': cms.vstring('hltEle30WPTightPixelMatchFilter'), 'passHLTEle30WPTightPMS2Filter': cms.vstring('hltEle30WPTightPMS2Filter'), 'passHLTEle30WPTightGsfOneOEMinusOneOPFilter': cms.vstring('hltEle30WPTightGsfOneOEMinusOneOPFilter'), 'passHLTEle30WPTightGsfMissingHitsFilter': cms.vstring('hltEle30WPTightGsfMissingHitsFilter'), 'passHLTEle30WPTightGsfDetaFilter': cms.vstring('hltEle30WPTightGsfDetaFilter'), 'passHLTEle30WPTightGsfDphiFilter': cms.vstring('hltEle30WPTightGsfDphiFilter'), 'passHLTEle30WPTightGsfTrackIsoFilter': cms.vstring('hltEle30WPTightGsfTrackIsoFilter')}
 
@@ -190,15 +207,21 @@ elif '2022' in options['era']:
   options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
 
 elif '2023' in options['era']:
-  options['TnPPATHS']           = cms.vstring("HLT_Ele30_WPTight_Gsf_v*")
-  options['TnPHLTTagFilters']   = cms.vstring("hltEle30WPTightGsfTrackIsoFilter")
+  # options['TnPPATHS']           = cms.vstring("HLT_Ele30_WPTight_Gsf_v*")
+  # options['TnPHLTTagFilters']   = cms.vstring("hltEle30WPTightGsfTrackIsoFilter")
+  options['TnPPATHS']           = cms.vstring("HLT_DoubleEle6_eta1p22_mMax6_v*")
+  if options['noHLTReq']:
+      options['TnPHLTTagFilters'] = cms.vstring()
+  else:
+      options['TnPHLTTagFilters']   = cms.vstring("hltDoubleEle6eta1p22PMmMax6MassFilter")
   options['TnPHLTProbeFilters'] = cms.vstring()
   options['HLTFILTERSTOMEASURE']= {}
-  options['HLTFILTERSTOMEASURE'].update(ele30_allFilters) 
-  options['HLTFILTERSTOMEASURE'].update(ele115_allFilters)
-  options['HLTFILTERSTOMEASURE'].update(ele23ele12_allFilters)
-  options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg1_allFilters)
-  options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
+  options['HLTFILTERSTOMEASURE'].update(doubleEle6_allFilters)
+  # options['HLTFILTERSTOMEASURE'].update(ele30_allFilters) 
+  # options['HLTFILTERSTOMEASURE'].update(ele115_allFilters)
+  # options['HLTFILTERSTOMEASURE'].update(ele23ele12_allFilters)
+  # options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg1_allFilters)
+  # options['HLTFILTERSTOMEASURE'].update(doubleEle33_leg2_allFilters)
 
 # Apply L1 matching (using L1Threshold) when flag contains "L1match" in name
 options['ApplyL1Matching']      = any(['L1match' in flag for flag in options['HLTFILTERSTOMEASURE'].keys()])
